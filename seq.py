@@ -1,25 +1,3 @@
-"""
-We can ask the user to supply a desired min and max fragment length.
-Simulated sequencing errors and variable sequence quality can be introduced to
-increase the realism of the simulation.
-
-In a real sequencing project, fragments of the DNA to be sequenced are produced by
-random processes. Thus, our program should randomly choose a substring of the input
-DNA string that falls within  the specified size range. However, we need to make sure
-generate enough overalpping fragments to cover the whole genome. The original shotgun
-sequencing genome projects tried to achieve about eightfold coverage of the entire
-original sequence: that is, each base position in the original sequence should appear in
-at least eight fragments.
-
-Next generation sequencing methods, with their shorter reads, typically work with 30-fold coverage,
-while an application such as identifying rare mutations with a high degree of confidence may require
-1000-fold coverage.
-User input:
-desired coverage value
-
-Goal: generate random fragments from input seq
-"""
-
 import random
 
 ### User definitions
@@ -39,7 +17,7 @@ def read_seq(fasta):
                     seq += s
     return seq
 
-seq = read_seq('homo.sapiens.mtc.fna')
+seq = read_seq('homo10.fna')
 
 # Calculate coverage according to
 # wikipedia.org/wiki/Coverage_(genetics)#Calculation
@@ -82,13 +60,40 @@ def fragment(seq, reads):
         cov = coverage(reads)
     return reads
 
-
-
 fragments = fragment(seq, reads = [])
-for i in range(50):
-    print(fragments[i])
 
-#def overlap(fragments):
-#print(len(fragments)
+def find_kmers(reads, k):
+    kmers = []
+    for read in fragments:
+        s = [read[i:i+k] for i in range(len(read)) if len(read[i:i+k]) == k]
+        kmers.extend(s)
+    kmers = set(kmers)
+    return list(kmers) # return unique kmers
+
+# k: kmer size
+kmers = find_kmers(fragments, 4)
+
+de_bruijn = {x:[] for x in kmers}
+
+for m in kmers:
+    for k in kmers:
+        #print(kmers[0], k)
+        #print(kmers[0][1:], k[0:-1])
+        if m[1:] == k[0:-1]:
+            de_bruijn[m].append(k)
+
+
+for k,v in de_bruijn.items():
+    #v = [(x[0], x[1:]) for x in v]
+    print('%s(%s):\t%s' % (k[0],k[1:],v))
+#print(len(kmers))
+
+
+
+
+
+
+
+
 
 #contig = ''
