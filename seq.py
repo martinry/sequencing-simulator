@@ -28,6 +28,7 @@ fMin = 50
 fMax = 100
 fold = 30 # each base should appear in at least 30 fragments
 
+# Parse fasta file
 def read_seq(fasta):
     seq = ''
     with open(fasta, 'r') as sequence:
@@ -40,21 +41,43 @@ def read_seq(fasta):
 
 seq = read_seq('homo.sapiens.mtc.fna')
 
+# Calculate coverage according to
+# wikipedia.org/wiki/Coverage_(genetics)#Calculation
 def coverage(reads):
     G = len(seq)
     N = len(reads)
     L = len(''.join(reads)) / N
-    cov = float(N)* (float(L)/float(G))
+    cov = float(N) * (float(L) / float(G))
     return (cov)
 
+def pick_read(rloc, fSize, seq, tmpread=''):
+    if (rloc+fSize) > (len(seq)-1):
+        tmpread = seq[rloc:(len(seq)-1)]
+        tmpread += seq[0:(rloc+fSize)-(len(seq)-1)]
+        return tmpread
+    else:
+        tmpread = seq[rloc:(rloc+fSize)]
+        return tmpread
+
 def fragment(seq, reads):
+    # Fragment size
     fSize = random.randint(fMin, fMax)
-    reads.append(''.join(random.sample(seq, fSize)))
+    # Random location to pick from
+    rloc = random.randint(0,len(seq)-1)
+
+    read = pick_read(rloc, fSize, seq, tmpread='')
+    reads.append(read)
+
     cov = coverage(reads)
 
     while cov <= fold:
+        # Fragment size
         fSize = random.randint(fMin, fMax)
-        reads.append(''.join(random.sample(seq, fSize)))
+        # Random location to pick from
+        rloc = random.randint(0,len(seq)-1)
+        # Check if out of range
+        read = pick_read(rloc, fSize, seq, tmpread='')
+        reads.append(read)
 
         cov = coverage(reads)
     return reads
@@ -62,13 +85,10 @@ def fragment(seq, reads):
 
 
 fragments = fragment(seq, reads = [])
+for i in range(50):
+    print(fragments[i])
 
-def overlap(fragments):
-    
+#def overlap(fragments):
+#print(len(fragments)
 
-contig = ''
-
-
-
-
-
+#contig = ''
