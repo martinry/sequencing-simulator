@@ -17,7 +17,7 @@ def read_seq(fasta):
                     seq += s
     return seq
 
-seq = read_seq('homo10.fna')
+seq = read_seq('homo10.fna')#.sapiens.mtc.fna')
 
 # Calculate coverage according to
 # wikipedia.org/wiki/Coverage_(genetics)#Calculation
@@ -71,24 +71,61 @@ def find_kmers(reads, k):
     return list(kmers) # return unique kmers
 
 # k: kmer size
-kmers = find_kmers(fragments, 4)
+kmers = find_kmers(fragments, 10)
 
-de_bruijn = {x:[] for x in kmers}
+#de_bruijn = {x:[] for x in kmers}
+graph = {}
 
+for k in kmers:
+    from_node = k[1:]
+    to_nodes = [m for m in kmers if from_node in m[0:-1]]# and k != m]
+    #print(k, to_nodes)
+    graph[k] = to_nodes
+    
+
+def find_path(node):
+    vector = graph[node][0]
+    print(vector)
+    return vector
+
+# Choose a starting point in dictionary
+start_node = next(iter(graph))
+
+    
+    
+    
+
+"""
 for m in kmers:
     for k in kmers:
+        print(k, m)
         #print(kmers[0], k)
         #print(kmers[0][1:], k[0:-1])
         if m[1:] == k[0:-1]:
             de_bruijn[m].append(k)
 
-
-for k,v in de_bruijn.items():
+"""
+#for k,v in de_bruijn.items():
     #v = [(x[0], x[1:]) for x in v]
-    print('%s(%s):\t%s' % (k[0],k[1:],v))
+    ##print('%s(%s):\t%s' % (k[0],k[1:],v))
+#    print(k, v)
 #print(len(kmers))
+"""
+seen = []
 
+genome = []
 
+for k,v in graph.items():
+    genome.extend(k)
+    genome.extend(v[-1])
+"""
+#seen = [k for k,v in de_bruijn.items()]
+"""for k,v in de_bruijn.items():
+    seen.append(k)
+    for values in v:
+        if v not in seen:
+            
+   """ 
 
 
 
