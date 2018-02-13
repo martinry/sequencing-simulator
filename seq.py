@@ -17,22 +17,28 @@ def read_seq(fasta):
                     seq += s
     return seq
 
-seq = read_seq('homo10.fna')#.sapiens.mtc.fna')
+seq = read_seq('h10.fna')
+
+#seq = 'AATGCCGTACGTAGGGTAATATATGACCA'
 
 # Calculate coverage according to
 # wikipedia.org/wiki/Coverage_(genetics)#Calculation
 def coverage(reads):
-    G = len(seq)
-    N = len(reads)
-    L = len(''.join(reads)) / N
+    G = len(seq)    # Length of genome sequence
+    N = len(reads)  # Number of reads
+    L = len(''.join(reads)) / N # Average read length
     cov = float(N) * (float(L) / float(G))
     return (cov)
 
 def pick_read(rloc, fSize, seq, tmpread=''):
-    if (rloc+fSize) > (len(seq)-1):
-        tmpread = seq[rloc:(len(seq)-1)]
-        tmpread += seq[0:(rloc+fSize)-(len(seq)-1)]
+    # Account for circular genome:
+    # if the 'picked' length is greater than the length of the genome seq
+    # We have to continue picking in the 'beginning' of the seq
+    if (rloc+fSize) > (len(seq)):
+        tmpread = seq[rloc:(len(seq))]
+        tmpread += seq[0:(rloc+fSize)-(len(seq))]
         return tmpread
+    
     else:
         tmpread = seq[rloc:(rloc+fSize)]
         return tmpread
@@ -40,26 +46,33 @@ def pick_read(rloc, fSize, seq, tmpread=''):
 def fragment(seq, reads):
     # Fragment size
     fSize = random.randint(fMin, fMax)
-    # Random location to pick from
+    
+    # Random position to pick from
     rloc = random.randint(0,len(seq)-1)
 
+    # Pick a read of length fSize at position rloc
     read = pick_read(rloc, fSize, seq, tmpread='')
     reads.append(read)
 
+    # Calculate current coverage
     cov = coverage(reads)
 
+    # Repeat until coverage requirement has been met
     while cov <= fold:
         # Fragment size
         fSize = random.randint(fMin, fMax)
+        
         # Random location to pick from
         rloc = random.randint(0,len(seq)-1)
-        # Check if out of range
+        
+        # Pick a read of length fSize at position rloc
         read = pick_read(rloc, fSize, seq, tmpread='')
         reads.append(read)
 
         cov = coverage(reads)
-    return reads
+    return set(reads)
 
+print('Generating fragments...')
 fragments = fragment(seq, reads = [])
 
 def find_kmers(reads, k):
@@ -70,67 +83,91 @@ def find_kmers(reads, k):
     kmers = set(kmers)
     return list(kmers) # return unique kmers
 
-# k: kmer size
-kmers = find_kmers(fragments, 10)
+# the lower the kmer size, the more kmers in total
+# but fewer unique kmers
 
-#de_bruijn = {x:[] for x in kmers}
+print('Generating kmers...')
+# k: kmer size
+kmers = find_kmers(fragments, 7)
+
+
 graph = {}
 
+print('Generating graph...')
 for k in kmers:
     from_node = k[1:]
-    to_nodes = [m for m in kmers if from_node in m[0:-1]]# and k != m]
-    #print(k, to_nodes)
+    to_nodes = [m for m in kmers if from_node in m[0:-1]]
     graph[k] = to_nodes
     
+import networkx as nx
+import matplotlib.pyplot as plt
+#%matplotlib inline
 
-def find_path(node):
-    vector = graph[node][0]
-    print(vector)
-    return vector
 
-# Choose a starting point in dictionary
-start_node = next(iter(graph))
+# Plot directed graph, use max kmer 8, max genome 10
+def draw_nw(g):
+    plt.figure(figsize=(20,20), dpi=50)
+    nx.draw_networkx(g, arrows=True, with_labels=False, node_size=200, alpha=0.5, font_size=20)
 
-    
-    
-    
+print('Plotting...')
+g = nx.DiGraph(graph)
+#draw_nw(g)
+
+def draw_de_bruijn_graph(g):
+    plt.figure(figsize=(20,20), dpi=80)
+    nx.draw_networkx(
+        g, pos=nx.circular_layout(g),
+        node_shape='o', alpha=0.5, with_labels=True, node_size=200, font_size=15,
+        edge_color='#555555', width=0.5
+    )
+    nx.draw_networkx_edge_labels(
+        g, pos=nx.circular_layout(g), 
+        edge_labels=nx.get_edge_attributes(g, 'weight'),
+        font_size=24, label_pos=0.25, rotate=False
+    )
+    plt.axis('off')
+    plt.show()
+
+
+
+#g = nx.DiGraph(graph)
+#draw_de_bruijn_graph(g)
+
+max_path_length = 0
+longest_path_node = ''
+
+for n in g.nodes():
+    G = nx.bfs_tree(g, n)
+    lpl = nx.dag_longest_path_length(G)
+
+    if nx.dag_longest_path_length(G) > max_path_length:
+        max_path_length = lpl
+        longest_path_node = n
+
+G = nx.bfs_tree(g, longest_path_node)
+draw_nw(G)
+
+print(g.size())
+print(g.order())
+
+
 
 """
-for m in kmers:
-    for k in kmers:
-        print(k, m)
-        #print(kmers[0], k)
-        #print(kmers[0][1:], k[0:-1])
-        if m[1:] == k[0:-1]:
-            de_bruijn[m].append(k)
+g = nx.DiGraph(graph)
 
+
+
+nx.draw(g)
+plt.savefig("simple_path.png") # save as png
+plt.show() # display
+
+try:
+  path = nx.dag_longest_path(G)
+  print(path)
+  # ['a', 'b', 'c', 'd']
+
+  print(len(path) - 1)
+  # 3
+except nx.exception.NetworkXUnfeasible: # There's a loop!
+  print("The graph has a cycle")
 """
-#for k,v in de_bruijn.items():
-    #v = [(x[0], x[1:]) for x in v]
-    ##print('%s(%s):\t%s' % (k[0],k[1:],v))
-#    print(k, v)
-#print(len(kmers))
-"""
-seen = []
-
-genome = []
-
-for k,v in graph.items():
-    genome.extend(k)
-    genome.extend(v[-1])
-"""
-#seen = [k for k,v in de_bruijn.items()]
-"""for k,v in de_bruijn.items():
-    seen.append(k)
-    for values in v:
-        if v not in seen:
-            
-   """ 
-
-
-
-
-
-
-
-#contig = ''
