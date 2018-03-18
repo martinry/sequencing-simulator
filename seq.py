@@ -149,25 +149,3 @@ draw_nw(G)
 
 print(g.size())
 print(g.order())
-
-
-
-"""
-g = nx.DiGraph(graph)
-
-
-
-nx.draw(g)
-plt.savefig("simple_path.png") # save as png
-plt.show() # display
-
-try:
-  path = nx.dag_longest_path(G)
-  print(path)
-  # ['a', 'b', 'c', 'd']
-
-  print(len(path) - 1)
-  # 3
-except nx.exception.NetworkXUnfeasible: # There's a loop!
-  print("The graph has a cycle")
-"""
